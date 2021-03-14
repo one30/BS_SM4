@@ -3,7 +3,7 @@
  * @Version      : from https://github.com/DadaIsCrazy/usuba
  * @Autor        : one30: one30@m.scnu.edu.cn(email)
  * @Date         : 2021-03-10 22:39:40
- * @LastEditTime : 2021-03-11 11:23:56
+ * @LastEditTime : 2021-03-14 14:14:53
  * @FilePath     : /include/Neon.h
  */
 /* ******************************************** *\
@@ -37,8 +37,19 @@
 #define NOT(a) vmvnq_u32((uint32x4_t)a)
 
 #define DATATYPE uint64x2_t
+typedef DATATYPE bit_t;
+typedef struct {
+  bit_t b0;
+  bit_t b1;
+  bit_t b2;
+  bit_t b3;
+  bit_t b4;
+  bit_t b5;
+  bit_t b6;
+  bit_t b7;
+} bits;
 
-#define SET_ALL_ONE() ONES
+#define SET_ALL_ONE() ONE
 #define SET_ALL_ZERO() ZERO
 
 #define PERMUT_16(a,x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15,x16) \
@@ -51,7 +62,7 @@
 
 // ifdef RUNTIME
 static uint64_t mask_l[6] = {
-    0xaaaaaaaaaaaaaaaaUL,
+  0xaaaaaaaaaaaaaaaaUL,
 	0xccccccccccccccccUL,
 	0xf0f0f0f0f0f0f0f0UL,
 	0xff00ff00ff00ff00UL,
@@ -66,7 +77,7 @@ static uint64_t mask_r[6] = {
 	0x00ff00ff00ff00ffUL,
 	0x0000ffff0000ffffUL,
 	0x00000000ffffffffUL
-}
+};
 
 void real_ortho(uint64_t data[]) {
   for (int i = 0; i < 6; i ++) {
@@ -107,15 +118,21 @@ void real_ortho_128x128(DATATYPE data[]) {
   
   for (int i = 0; i < 7; i ++) {
     int n = (1UL << i);
-    for (int j = 0; j < 128; j += (2 * n))
+    int64x2_t n_128 = {0ULL, 1ULL};
+    n_128 = n_128 << i;
+     for (int j = 0; j < 128; j += (2 * n))
       for (int k = 0; k < n; k ++) {
         DATATYPE u = AND(data[j + k], mask_l[i]);
         DATATYPE v = AND(data[j + k], mask_r[i]);
         DATATYPE x = AND(data[j + n + k], mask_l[i]);
         DATATYPE y = AND(data[j + n + k], mask_r[i]);
+        //int64x2_t y = AND(data[j + n + k], mask_r[i]);
         if (i <= 5) {
-          data[j + k] = OR(u, vshrq_n_u64(x, n));
-          data[j + n + k] = OR(vshlq_n_u64(v, n), y);
+          // data[j + k] = OR(u, vshrq_n_u64(x, n));
+          //data[j + k] = OR(u, vshrq_n_u64(x, n));
+          //data[j + n + k] = OR(vshlq_n_u64(v, n), y);
+          data[j + k] = OR(u, vshlq_u64(x, -n_128));
+          data[j + n + k] = OR(vshlq_u64(v, n_128), y);
         } else {
           data[j + k] = OR(u, vcombine_s64(vget_low_s64(x),vget_high_s64(x)));
           data[j + n + k] = OR(vcombine_s64(vget_low_s64(v),vget_high_s64(v)), y);
